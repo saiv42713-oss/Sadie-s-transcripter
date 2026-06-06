@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+  <title>LectureVault</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="root">
+
+    <!-- Title bar -->
+    <div id="titlebar">
+      <span class="app-name">Lecture<span style="color:var(--accent)">Vault</span></span>
+      <div class="recording-indicator hidden" id="rec-indicator">
+        <div class="rec-dot"></div>
+        <span class="rec-label">REC</span>
+        <span class="rec-timer" id="rec-timer">00:00</span>
+      </div>
+    </div>
+
+    <div id="main-area">
+
+      <!-- ── Sidebar ── -->
+      <div id="sidebar">
+        <div id="sidebar-header">
+          <h2>Sessions</h2>
+          <button class="icon-btn" id="refresh-sessions-btn" title="Refresh">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M23 4v6h-6M1 20v-6h6"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
+        </div>
+        <div id="session-list">
+          <div class="empty-sessions">No recordings yet</div>
+        </div>
+        <div id="sidebar-footer">
+          <button class="settings-btn" id="settings-btn">⚙ Settings</button>
+        </div>
+      </div>
+
+      <!-- ── Content ── -->
+      <div id="content">
+
+        <!-- Model download overlay -->
+        <div id="model-download-overlay" class="hidden">
+          <div class="download-title">Downloading Whisper Model</div>
+          <div class="download-sub" id="download-sub-text">
+            LectureVault needs to download the speech recognition model on first launch.
+            This only happens once (~150 MB).
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="download-progress-fill"></div>
+          </div>
+          <div class="download-label" id="download-progress-label">Preparing...</div>
+        </div>
+
+        <!-- SCREEN: Idle -->
+        <div id="screen-idle">
+          <div class="idle-logo">Lecture<span>Vault</span></div>
+          <button class="record-btn" id="record-btn" title="Start Recording (Space)" disabled></button>
+          <div class="record-hint" id="record-hint">Initializing speech model…</div>
+          <div class="model-status" id="model-status">
+            <div class="status-dot loading" id="model-dot"></div>
+            <span id="model-status-text">Loading model…</span>
+          </div>
+        </div>
+
+        <!-- SCREEN: Recording -->
+        <div id="screen-recording" class="hidden">
+          <div id="waveform-container">
+            <canvas id="waveform-canvas"></canvas>
+            <button class="stop-btn" id="stop-btn">■ Stop</button>
+            <button class="finish-btn" id="finish-btn">✓ Finish &amp; Summarize</button>
+          </div>
+          <div id="recording-panes">
+            <div id="transcript-pane">
+              <div class="pane-header">
+                Live Transcript
+                <span class="word-count" id="word-count">0 words</span>
+              </div>
+              <div id="transcript-scroll">
+                <div id="transcript-text">
+                  <span class="transcript-placeholder">Listening… speak clearly into your microphone.</span>
+                </div>
+              </div>
+            </div>
+            <div id="keypoints-pane">
+              <div class="pane-header">
+                Key Points
+                <span class="keypoints-update-label" id="keypoints-update-label">updates every 30s</span>
+              </div>
+              <div id="keypoints-list">
+                <div class="keypoints-empty">Key points will appear as you speak…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SCREEN: Processing -->
+        <div id="screen-processing" class="hidden">
+          <div class="spinner"></div>
+          <div class="processing-title" id="processing-title">Finalizing transcript…</div>
+          <div class="processing-sub" id="processing-sub">Please wait while Whisper processes the remaining audio.</div>
+          <button class="skip-btn hidden" id="skip-ai-btn">Skip AI summary — use extractive only</button>
+        </div>
+
+        <!-- SCREEN: Review -->
+        <div id="screen-review" class="hidden">
+          <div id="review-toolbar">
+            <span class="toolbar-title" id="review-title">Lecture — Just Now</span>
+            <button class="toolbar-btn" id="new-recording-btn">+ New Recording</button>
+            <button class="toolbar-btn primary" id="copy-summary-btn">Copy Summary</button>
+            <button class="toolbar-btn" id="export-pdf-btn">Export PDF</button>
+            <button class="toolbar-btn" id="open-folder-btn">Open Folder</button>
+          </div>
+          <div id="review-panes">
+            <div id="review-transcript-pane">
+              <div class="pane-header">Full Transcript</div>
+              <div id="review-transcript-scroll">
+                <div id="review-transcript-text"></div>
+              </div>
+            </div>
+            <div id="review-summary-pane">
+              <div class="pane-header">
+                Summary
+                <span id="summary-model-tag" style="font-size:9px;color:var(--text-dim);font-weight:400;"></span>
+              </div>
+              <div id="review-summary-scroll">
+                <div id="review-summary-content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main-area -->
+  </div><!-- /root -->
+
+  <!-- Setup / Settings modal -->
+  <div id="screen-setup" class="hidden">
+    <div class="setup-card">
+      <h1 id="setup-title">Setup LectureVault</h1>
+      <p id="setup-desc">
+        Enter your Anthropic API key to enable AI-powered summaries.
+        You can skip this and use offline extractive summaries only.
+        Your key is stored locally at <code>~/.lecturevault/config.json</code>.
+      </p>
+      <label class="field-label" for="api-key-input">Anthropic API Key</label>
+      <input
+        class="field-input"
+        id="api-key-input"
+        type="password"
+        placeholder="sk-ant-..."
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <label class="field-label" for="model-select">Whisper Model</label>
+      <select class="field-select" id="model-select">
+        <option value="Xenova/whisper-tiny.en">whisper-tiny.en — Fastest, ~39 MB</option>
+        <option value="Xenova/whisper-base.en" selected>whisper-base.en — Balanced, ~74 MB</option>
+        <option value="Xenova/whisper-small.en">whisper-small.en — Accurate, ~244 MB</option>
+        <option value="Xenova/whisper-medium.en">whisper-medium.en — Best quality, ~769 MB</option>
+      </select>
+      <div id="setup-msg"></div>
+      <div class="setup-actions" style="margin-top:12px">
+        <button class="btn-secondary" id="setup-cancel-btn">Cancel</button>
+        <button class="btn-primary" id="setup-save-btn">Save &amp; Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script src="summarizer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
