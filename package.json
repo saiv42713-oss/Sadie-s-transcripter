@@ -41,17 +41,39 @@
       "node_modules/@xenova/transformers/**/*"
     ],
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "category": "public.app-category.productivity",
       "darkModeSupport": true
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "icon": "assets/icon.ico"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "linux": {
-      "target": [{ "target": "AppImage", "arch": ["x64"] }],
-      "category": "AudioVideo"
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo",
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,
