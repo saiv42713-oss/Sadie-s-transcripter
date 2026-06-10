@@ -1,7 +1,7 @@
 {
   "name": "lecturevault",
   "version": "1.0.0",
-  "description": "Professional lecture recorder and summarizer",
+  "description": "Sadie's Transcriptor — a cute pink lecture recorder and summarizer",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -22,7 +22,7 @@
   },
   "build": {
     "appId": "com.lecturevault.app",
-    "productName": "LectureVault",
+    "productName": "Sadie's Transcriptor",
     "directories": {
       "output": "dist"
     },
@@ -73,7 +73,7 @@
         }
       ],
       "category": "AudioVideo",
-      "icon": "build/icon.png"
+      "icon": "assets/icon.png"
     },
     "nsis": {
       "oneClick": false,

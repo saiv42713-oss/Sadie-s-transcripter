@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, nativeTheme, systemPreferences } = require('electron');
 const path = require('path');
 const { Worker } = require('worker_threads');
 const fs = require('fs');
@@ -21,14 +21,14 @@ let cancelPolish = false;
 // ─── Window ────────────────────────────────────────────────────────────────────
 
 function createWindow() {
-  nativeTheme.themeSource = 'dark';
+  nativeTheme.themeSource = 'light';
 
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 960,
     minHeight: 640,
-    backgroundColor: '#0e0e10',
+    backgroundColor: '#fff0f6',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     frame: process.platform !== 'darwin',
     trafficLightPosition: { x: 18, y: 18 },
@@ -103,6 +103,20 @@ function startWhisperWorker() {
 app.whenReady().then(() => {
   createWindow();
   startWhisperWorker();
+
+  // Prompt for mic access up front on macOS so the first recording
+  // doesn't stall on the OS permission dialog. Non-blocking; Electron
+  // also auto-prompts when the renderer calls getUserMedia.
+  if (process.platform === 'darwin') {
+    try {
+      const status = systemPreferences.getMediaAccessStatus('microphone');
+      if (status === 'not-determined') {
+        systemPreferences.askForMediaAccess('microphone').catch(() => {});
+      }
+    } catch {
+      // never let permission probing take the app down
+    }
+  }
 });
 
 app.on('window-all-closed', () => {

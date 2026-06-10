@@ -17,11 +17,29 @@ function ensureDir() {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
 }
 
+// Older versions of the app stored bare names like "small" — those are not
+// valid Hugging Face model IDs and make Whisper fail to load entirely.
+const LEGACY_MODEL_MAP = {
+  tiny: 'Xenova/whisper-tiny.en',
+  base: 'Xenova/whisper-base.en',
+  small: 'Xenova/whisper-small.en',
+  medium: 'Xenova/whisper-medium.en'
+};
+
+function normalizeModel(model) {
+  if (!model) return DEFAULTS.whisperModel;
+  if (LEGACY_MODEL_MAP[model]) return LEGACY_MODEL_MAP[model];
+  if (!model.startsWith('Xenova/whisper-')) return DEFAULTS.whisperModel;
+  return model;
+}
+
 function readConfig() {
   try {
     ensureDir();
     const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
-    return { ...DEFAULTS, ...JSON.parse(raw) };
+    const config = { ...DEFAULTS, ...JSON.parse(raw) };
+    config.whisperModel = normalizeModel(config.whisperModel);
+    return config;
   } catch {
     return { ...DEFAULTS };
   }

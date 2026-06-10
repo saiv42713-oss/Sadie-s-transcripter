@@ -143,8 +143,7 @@ function setupUIListeners() {
 
 // ─── Whisper / Model events ──────────────────────────────────────────────────
 function onDownloadProgress(msg) {
-  if (!dom.modelDownloadOverlay.classList.contains('hidden')) return;
-  // Show overlay on first progress message
+  // Show overlay on first progress message, keep updating on every one after
   dom.modelDownloadOverlay.classList.remove('hidden');
 
   dom.downloadProgressFill.style.width = `${msg.progress || 0}%`;
@@ -347,6 +346,8 @@ async function stopRecording(doAiPolish) {
 
   state.allSamples = [];
 
+  heartConfetti();
+
   if (doAiPolish && state.config.apiKey) {
     dom.processingTitle.textContent = 'AI Polish Pass…';
     dom.processingSub.textContent = 'Claude is reading the transcript and composing a structured summary.';
@@ -508,8 +509,14 @@ function startWaveform() {
     const h = canvas.offsetHeight;
     ctx.clearRect(0, 0, w, h);
 
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, '#f472b6');
+    grad.addColorStop(0.5, '#ec4899');
+    grad.addColorStop(1, '#d946ef');
+    ctx.strokeStyle = grad;
+    ctx.shadowColor = 'rgba(236, 72, 153, 0.45)';
+    ctx.shadowBlur = 6;
     ctx.beginPath();
 
     const sliceWidth = w / dataArray.length;
@@ -706,12 +713,13 @@ async function saveSettings() {
   }
 
   try {
+    const previousModel = state.config.whisperModel;
     const config = await window.api.invoke('set-config', { apiKey, whisperModel: model });
     state.config = config;
-    dom.setupMsg.textContent = 'Saved!';
+    dom.setupMsg.textContent = 'Saved! 💖';
     dom.setupMsg.className = 'success-msg';
 
-    if (model !== state.config.whisperModel) {
+    if (model !== previousModel) {
       state.whisperReady = false;
       dom.modelDot.className = 'status-dot loading';
       dom.modelStatusText.textContent = 'Loading new model…';
@@ -763,6 +771,40 @@ function toast(message, type = 'info') {
   el.textContent = message;
   dom.toastContainer.appendChild(el);
   setTimeout(() => el.remove(), 4000);
+}
+
+// ─── Sparkles & Heart Confetti ───────────────────────────────────────────────
+const SPARKLE_CHARS = ['✨', '💖', '🌸', '⭐', '💕', '🎀', '🦄', '💗'];
+
+function spawnSparkle() {
+  if (state.screen !== 'idle') return;
+  const el = document.createElement('span');
+  el.className = 'floating-sparkle';
+  el.textContent = SPARKLE_CHARS[Math.floor(Math.random() * SPARKLE_CHARS.length)];
+  el.style.left = `${Math.random() * 100}%`;
+  el.style.fontSize = `${10 + Math.random() * 16}px`;
+  el.style.animationDuration = `${6 + Math.random() * 6}s`;
+  el.style.animationDelay = `${Math.random() * 2}s`;
+  dom.screenIdle.appendChild(el);
+  setTimeout(() => el.remove(), 14000);
+}
+
+setInterval(spawnSparkle, 1400);
+for (let i = 0; i < 6; i++) setTimeout(spawnSparkle, i * 300);
+
+function heartConfetti() {
+  const HEARTS = ['💖', '💕', '💗', '🩷', '✨', '🌸', '🎀'];
+  for (let i = 0; i < 36; i++) {
+    const el = document.createElement('span');
+    el.className = 'confetti-heart';
+    el.textContent = HEARTS[Math.floor(Math.random() * HEARTS.length)];
+    el.style.left = `${Math.random() * 100}vw`;
+    el.style.fontSize = `${14 + Math.random() * 22}px`;
+    el.style.animationDuration = `${2 + Math.random() * 2.5}s`;
+    el.style.animationDelay = `${Math.random() * 0.7}s`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 5500);
+  }
 }
 
 // ─── Boot ────────────────────────────────────────────────────────────────────

@@ -20,15 +20,24 @@ async function init() {
     pipeline = await createPipeline('automatic-speech-recognition', modelName, {
       quantized: true,
       progress_callback: (info) => {
-        if (info.status === 'downloading') {
+        // transformers.js v2 emits: initiate → download → progress (repeated) → done → ready
+        if (info.status === 'progress' && info.file) {
           parentPort.postMessage({
             type: 'progress',
             status: 'downloading',
             file: info.file,
-            progress: Math.round((info.loaded / info.total) * 100) || 0,
-            text: `Downloading ${info.file}...`
+            progress: Math.round(info.progress) || 0,
+            text: `Downloading ${info.file}... ${Math.round(info.progress) || 0}%`
           });
-        } else if (info.status === 'loading') {
+        } else if (info.status === 'done' && info.file) {
+          parentPort.postMessage({
+            type: 'progress',
+            status: 'downloading',
+            file: info.file,
+            progress: 100,
+            text: `Finished ${info.file}`
+          });
+        } else if (info.status === 'ready') {
           parentPort.postMessage({
             type: 'progress',
             status: 'loading',
@@ -56,14 +65,19 @@ parentPort.on('message', async (msg) => {
     try {
       const audio = new Float32Array(msg.audio);
 
-      const result = await pipeline(audio, {
-        sampling_rate: 16000,
+      const options = {
         chunk_length_s: 30,
         stride_length_s: 5,
-        language: 'english',
-        task: 'transcribe',
         return_timestamps: false
-      });
+      };
+      // English-only (.en) models have no language tokens — passing
+      // language/task to them breaks generation in transformers.js
+      if (!/\.en$/.test(modelName)) {
+        options.language = 'english';
+        options.task = 'transcribe';
+      }
+
+      const result = await pipeline(audio, options);
 
       const text = Array.isArray(result)
         ? result.map(r => r.text).join(' ')
