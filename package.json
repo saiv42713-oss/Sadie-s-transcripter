@@ -1,49 +1,83 @@
 {
   "name": "lecturevault",
-  "productName": "LectureVault",
   "version": "1.0.0",
-  "description": "A warm, polished lecture recorder — transcribes locally, summarizes intelligently.",
-  "main": "src/main/main.js",
-  "author": "LectureVault",
-  "license": "MIT",
+  "description": "Professional lecture recorder and summarizer",
+  "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder",
-    "build:mac": "electron-builder --mac dmg",
-    "build:win": "electron-builder --win nsis",
-    "build:linux": "electron-builder --linux AppImage",
-    "test": "node tests/run-tests.js"
+    "dev": "electron . --dev",
+    "build": "electron-builder --publish never",
+    "build:mac": "electron-builder --mac --publish never",
+    "build:win": "electron-builder --win --publish never",
+    "build:linux": "electron-builder --linux --publish never",
+    "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
-    "@fontsource/jetbrains-mono": "^5.1.1",
-    "@fontsource/nunito": "^5.1.1",
-    "@fontsource/plus-jakarta-sans": "^5.1.1"
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@xenova/transformers": "^2.17.2"
   },
   "devDependencies": {
     "electron": "^31.7.7",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^24.13.3"
   },
   "build": {
     "appId": "com.lecturevault.app",
     "productName": "LectureVault",
-    "files": [
-      "src/**/*",
-      "package.json"
-    ],
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!node_modules/@xenova/transformers/tests/**/*",
+      "!node_modules/@xenova/transformers/src/**/*.test.*"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@xenova/transformers/**/*"
+    ],
     "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
       "category": "public.app-category.productivity",
-      "target": "dmg"
+      "darkModeSupport": true
     },
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
     },
     "linux": {
-      "target": "AppImage",
-      "category": "Office"
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "AudioVideo",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   }
 }

@@ -1,99 +1,132 @@
 # LectureVault
 
-A warm, polished desktop lecture recorder. It transcribes **locally** with Whisper,
-summarizes **live** with TF-IDF extraction, and — optionally — polishes your notes
-with Claude when the lecture ends. Everything except that last optional step works
-fully offline.
+A professional lecture recorder and summarizer. Records your microphone, transcribes speech offline using Whisper, extracts key points in real time, and optionally polishes the summary with Claude AI.
 
-```
-┌─────────────┬──────────────────────┬─────────────────┐
-│   Library   │   Live Transcript    │   Key Points    │
-│  (sessions) │   (words fade in)    │  (index cards)  │
-└─────────────┴──────────────────────┴─────────────────┘
-```
+---
 
-## Prerequisites
+## Features
 
-| Requirement | Why | Install |
-|---|---|---|
-| Node.js ≥ 18 + npm | dev & build tooling | nodejs.org |
-| **whisper.cpp** (recommended) | local transcription engine | `brew install whisper-cpp` (macOS) |
-| *or* openai-whisper (fallback) | same, slower | `pip install openai-whisper` |
-| ffmpeg | only needed by the Python fallback | `brew install ffmpeg` |
+- **Offline transcription** — Whisper runs entirely on your machine via `@xenova/transformers` (ONNX/WASM, no Python needed)
+- **Live rolling transcript** — text appears chunk by chunk as you speak
+- **Waveform visualizer** — confirms the mic is active
+- **Extractive key points** — TF-IDF sentence scoring updates every ~30 seconds
+- **Topic shift detection** — section breaks on transition phrases
+- **AI polish pass** — optional Claude (claude-sonnet-4-20250514) summary with streaming output
+- **Session history** — every lecture saved to `~/LectureVault/` with audio, transcript, and summary
+- **Export** — copy summary to clipboard or save as PDF
 
-The app detects whichever engine is present (`whisper-cli`, `whisper-cpp`, or the
-Python `whisper` CLI). On macOS the onboarding flow can install whisper.cpp for you
-through Homebrew. **Whisper models** (the ggml weights) are managed entirely in-app —
-downloaded on first run with a progress bar into `~/.lecturevault/models/`.
+---
 
-## Local development
+## Requirements
+
+- Node.js 18+ and npm
+- No Python, no cloud services, no external tools
+
+---
+
+## Setup
 
 ```bash
+# Clone and install
+git clone <repo>
+cd lecturevault
 npm install
-npm start          # launch the app
-npm test           # unit tests (summarizer, WAV writer, markdown, sessions)
+
+# Start in development mode
+npm start
 ```
 
-## Building installers
+On first launch the app downloads the Whisper model (~74 MB for the default `whisper-base.en`). A progress bar is shown — this only happens once.
+
+---
+
+## Anthropic API Key (optional)
+
+The AI polish pass requires an Anthropic API key. Click **Settings** in the sidebar to enter it. The key is stored at `~/.lecturevault/config.json` — never in the source code.
+
+You can skip the AI step and use the offline extractive summary instead.
+
+---
+
+## Whisper Models
+
+| Model | Size | Speed | Quality |
+|-------|------|-------|---------|
+| whisper-tiny.en | ~39 MB | Fastest | Basic |
+| whisper-base.en (default) | ~74 MB | Fast | Good |
+| whisper-small.en | ~244 MB | Medium | Better |
+| whisper-medium.en | ~769 MB | Slow | Best |
+
+Change the model in Settings. The new model downloads automatically on the next launch.
+
+---
+
+## Session Files
+
+Each recording is saved to `~/LectureVault/<session-id>/`:
+
+| File | Contents |
+|------|----------|
+| `audio.wav` | Raw 16 kHz mono recording |
+| `transcript.txt` | Full verbatim transcript |
+| `summary.md` | Extractive or AI-polished summary |
+| `metadata.json` | Date, duration, word count, model used |
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Start / Stop recording (when idle/recording) |
+
+---
+
+## Packaging
 
 ```bash
-npm run build:mac      # → dist/LectureVault-*.dmg
-npm run build:win      # → dist/LectureVault Setup *.exe   (NSIS)
-npm run build:linux    # → dist/LectureVault-*.AppImage
+# macOS (.dmg)
+npm run build:mac
+
+# Windows (.exe installer)
+npm run build:win
+
+# Linux (.AppImage)
+npm run build:linux
+
+# All platforms
+npm run build
 ```
 
-Cross-building Windows installers from macOS requires Wine; otherwise build each
-target on its own platform. The packaged app bundles the fonts and the Anthropic
-SDK; Whisper engines/models are intentionally *not* bundled (the engine is a system
-package, models are downloaded in-app on first run).
+Built packages are written to `dist/`. The packaged app bundles Whisper ONNX and all JS dependencies — no manual installs required on the target machine.
 
-## First-run configuration
+### Platform notes
 
-On first launch the app walks you through:
+**macOS**: Requires microphone permission approval on first launch (system dialog).
 
-1. **Welcome**
-2. **Microphone permission** — macOS will prompt; if you decline, fix it later in
-   System Settings → Privacy & Security → Microphone.
-3. **Whisper model choice** — `tiny` (75 MB, fastest) through `medium` (1.5 GB,
-   most accurate). Downloads with a real progress bar.
-4. **Anthropic API key** *(optional, skippable)* — enables the AI polish pass.
-   "Test Key" validates it with a trivial API call before you commit.
-5. A short tour, then you land on the home screen.
+**Windows**: The NSIS installer offers a per-user or per-machine install. Microphone permission is handled by Windows privacy settings.
 
-All preferences live in `~/.lecturevault/config.json` (key stored with `0600`
-permissions, never hardcoded). Recordings are saved to `~/LectureVault/` by
-default — change it in Settings.
+**Linux**: AppImage is self-contained. Microphone access depends on PulseAudio/PipeWire being available.
 
-### Session folders
+---
 
-Every lecture becomes `~/LectureVault/YYYY-MM-DD_HH-MM/`:
+## Architecture
 
 ```
-audio.wav          raw 16 kHz mono microphone recording
-transcript.txt     full verbatim transcript (with [section] markers)
-summary.md         extractive or AI-polished summary (labeled)
-metadata.json      date, duration, word count, whisper model, polish flag
+main.js              — Electron main process: IPC, file I/O, Anthropic API
+preload.js           — Secure IPC bridge (contextBridge)
+src/whisper-worker.js— Worker thread: @xenova/transformers Whisper pipeline
+src/storage.js       — ~/LectureVault/ file management
+src/config.js        — ~/.lecturevault/config.json
+src/renderer/
+  index.html         — Shell
+  styles.css         — Dark editorial design system
+  app.js             — UI state machine, audio capture, IPC calls
+  summarizer.js      — TF-IDF extractive summarizer (browser JS)
 ```
 
-## Adding a new Whisper model
+---
 
-1. Add an entry to `MODEL_INFO` in `src/main/whisper.js` — file name, download URL
-   (any ggml-format model, e.g. from `huggingface.co/ggerganov/whisper.cpp`), and
-   approximate size for the progress bar.
-2. Add a matching description in `MODEL_DESCRIPTIONS` (`src/renderer/js/onboarding.js`)
-   and `MODEL_NOTES` (`src/renderer/js/settings-ui.js`).
-3. The download, verification, and selection UI pick it up automatically.
+## Privacy
 
-## Architecture notes
-
-- **Main process** (`src/main/`): window lifecycle, config, model downloads,
-  WAV assembly, chunked Whisper transcription (8 s chunks cut at the quietest
-  moment so words don't get split), session storage/search, Anthropic streaming,
-  styled PDF export via an offscreen window.
-- **Renderer** (`src/renderer/`): an AudioWorklet streams 16 kHz PCM to the main
-  process; TF-IDF extractive summarization and topic-shift detection (silence
-  gaps + transition phrases) run continuously in the page; all UI states are
-  fully styled — no placeholder panels.
-- **Privacy**: audio and transcripts never leave the machine unless you click
-  "Finish & Summarize" *with* AI polish enabled — and the extractive summary is
-  always saved first, so a failed/offline polish never loses work.
+All audio processing and transcription is local. Audio is never sent to any server unless you explicitly click **Finish & Summarize** with an API key configured, in which case the transcript text (not audio) is sent to the Anthropic API.
