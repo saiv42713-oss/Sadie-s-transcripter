@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:;" />
+  <title>LectureVault</title>
+  <link rel="stylesheet" href="../../node_modules/@fontsource/nunito/latin-400.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/nunito/latin-600.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/nunito/latin-700.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/nunito/latin-800.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/plus-jakarta-sans/latin-400.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/plus-jakarta-sans/latin-500.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/plus-jakarta-sans/latin-600.css" />
+  <link rel="stylesheet" href="../../node_modules/@fontsource/jetbrains-mono/latin-400.css" />
+  <link rel="stylesheet" href="styles/base.css" />
+  <link rel="stylesheet" href="styles/layout.css" />
+  <link rel="stylesheet" href="styles/components.css" />
+  <link rel="stylesheet" href="styles/screens.css" />
+</head>
+<body>
+  <div id="drag-strip"></div>
+
+  <!-- ═══════════ Main three-pane shell ═══════════ -->
+  <div id="app" class="app hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-mark" data-icon="vault"></span>
+        <span class="brand-name">LectureVault</span>
+      </div>
+
+      <div class="sidebar-search">
+        <span class="search-icon" data-icon="search"></span>
+        <input id="session-search" type="text" placeholder="Search your lectures…" spellcheck="false" />
+      </div>
+
+      <nav id="session-list" class="session-list" aria-label="Saved lectures"></nav>
+
+      <div class="sidebar-footer">
+        <button id="btn-settings" class="ghost-btn" title="Settings">
+          <span data-icon="settings"></span><span>Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Center column -->
+    <main class="center" id="center">
+
+      <!-- IDLE -->
+      <section id="state-idle" class="state">
+        <div class="idle-hero">
+          <h1 class="idle-title">LectureVault</h1>
+          <p class="idle-tagline">Press record. Walk out with notes.</p>
+          <button id="btn-record" class="record-btn" aria-label="Start recording">
+            <span class="record-ring"></span>
+            <span class="record-core" data-icon="mic"></span>
+          </button>
+          <p class="idle-hint" id="idle-hint">Everything is transcribed on this machine — nothing leaves it unless you ask.</p>
+        </div>
+        <div class="recent-block" id="recent-block">
+          <h2 class="recent-heading">Pick up where you left off</h2>
+          <div id="recent-sessions" class="recent-grid"></div>
+        </div>
+      </section>
+
+      <!-- RECORDING -->
+      <section id="state-recording" class="state hidden">
+        <header class="rec-header">
+          <div class="rec-status">
+            <span class="rec-dot"></span>
+            <span>Recording</span>
+          </div>
+          <canvas id="waveform" width="520" height="56" aria-hidden="true"></canvas>
+          <div class="rec-timer" id="rec-timer">00:00</div>
+        </header>
+        <div id="live-transcript" class="live-transcript" aria-live="polite">
+          <p class="transcript-placeholder" id="transcript-placeholder">Listening… your words will appear here as Whisper catches up.</p>
+        </div>
+        <footer class="rec-actions">
+          <button id="btn-cancel" class="secondary-btn"><span data-icon="x"></span>Cancel</button>
+          <button id="btn-finish" class="primary-btn"><span data-icon="check"></span>Finish &amp; Summarize</button>
+        </footer>
+      </section>
+
+      <!-- PROCESSING -->
+      <section id="state-processing" class="state hidden">
+        <div class="processing-card">
+          <div class="pencil-scene" aria-hidden="true">
+            <div class="pencil" data-icon="pencil"></div>
+            <div class="pencil-line"></div>
+          </div>
+          <h2 id="processing-title">Tidying up your transcript…</h2>
+          <p id="processing-message">Whisper is finishing the last few sentences. Almost there.</p>
+          <div class="processing-bar"><div id="processing-fill" class="processing-fill indeterminate"></div></div>
+        </div>
+      </section>
+
+      <!-- REVIEW -->
+      <section id="state-review" class="state hidden">
+        <header class="review-toolbar">
+          <button id="btn-back-home" class="ghost-btn"><span data-icon="arrow-left"></span>Home</button>
+          <div class="review-title-wrap">
+            <h2 id="review-title">Lecture</h2>
+            <span id="review-meta" class="review-meta"></span>
+          </div>
+          <div class="review-actions">
+            <button id="btn-copy" class="secondary-btn small"><span data-icon="copy"></span>Copy</button>
+            <button id="btn-pdf" class="secondary-btn small"><span data-icon="file-down"></span>PDF</button>
+            <button id="btn-reveal" class="secondary-btn small"><span data-icon="folder"></span>Folder</button>
+          </div>
+        </header>
+        <div class="review-panes">
+          <div class="review-pane">
+            <h3 class="pane-label">Transcript <button id="btn-mono" class="mono-toggle" title="Toggle raw view">aA</button></h3>
+            <div id="review-transcript" class="review-scroll transcript-body"></div>
+          </div>
+          <div class="review-pane">
+            <h3 class="pane-label">Summary <span id="ai-badge" class="ai-badge hidden">✦ AI</span></h3>
+            <div id="review-summary" class="review-scroll summary-body"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Key points panel -->
+    <aside class="keypoints" id="keypoints-panel">
+      <h3 class="keypoints-heading"><span data-icon="sparkle"></span>Key Points</h3>
+      <p class="keypoints-hint" id="keypoints-hint">As you record, the strongest sentences gather here like index cards.</p>
+      <div id="keypoints-list" class="keypoints-list"></div>
+    </aside>
+  </div>
+
+  <!-- ═══════════ Onboarding ═══════════ -->
+  <div id="onboarding" class="onboarding hidden">
+    <div class="onb-card">
+      <!-- step 1: welcome -->
+      <div class="onb-step" data-step="1">
+        <div class="onb-art" data-icon="vault"></div>
+        <h1>Welcome to LectureVault</h1>
+        <p class="onb-lede">A warm little recorder that turns lectures into tidy, searchable notes — right on your machine.</p>
+        <button class="primary-btn onb-next">Get Started</button>
+      </div>
+      <!-- step 2: mic -->
+      <div class="onb-step hidden" data-step="2">
+        <div class="onb-art" data-icon="mic"></div>
+        <h1>May we listen?</h1>
+        <p class="onb-lede">LectureVault needs your microphone to record lectures. Audio stays on this computer — we never upload it.</p>
+        <p class="onb-error hidden" id="onb-mic-error">We couldn't access your microphone. Check System Settings → Privacy → Microphone and try again.</p>
+        <button class="primary-btn" id="onb-mic-btn">Allow Microphone</button>
+        <button class="text-btn onb-next">I'll do this later</button>
+      </div>
+      <!-- step 3: whisper -->
+      <div class="onb-step hidden" data-step="3">
+        <div class="onb-art" data-icon="download"></div>
+        <h1>Choose your transcriber</h1>
+        <p class="onb-lede">Whisper runs entirely offline. Smaller models are faster; bigger ones catch more.</p>
+        <div id="onb-engine-warning" class="engine-warning hidden"></div>
+        <div class="model-grid" id="onb-model-grid"></div>
+        <div class="download-progress hidden" id="onb-download">
+          <div class="processing-bar"><div class="processing-fill" id="onb-download-fill" style="width:0%"></div></div>
+          <p id="onb-download-label">Downloading…</p>
+        </div>
+        <button class="primary-btn" id="onb-model-btn">Download &amp; Continue</button>
+      </div>
+      <!-- step 4: api key -->
+      <div class="onb-step hidden" data-step="4">
+        <div class="onb-art" data-icon="sparkle"></div>
+        <h1>One optional superpower</h1>
+        <p class="onb-lede">Add an Anthropic API key and Claude will polish your notes after each lecture. Skip it and everything still works offline.</p>
+        <div class="key-row">
+          <input type="password" id="onb-api-key" placeholder="sk-ant-…" spellcheck="false" />
+          <button class="secondary-btn" id="onb-test-key">Test Key</button>
+        </div>
+        <p class="key-result" id="onb-key-result"></p>
+        <button class="primary-btn onb-next" id="onb-key-continue">Continue</button>
+        <button class="text-btn onb-next">Skip for now</button>
+      </div>
+      <!-- step 5: tour -->
+      <div class="onb-step hidden" data-step="5">
+        <h1>Your three panes</h1>
+        <div class="tour-diagram">
+          <div class="tour-pane tour-a"><strong>Library</strong><span>every lecture, searchable</span></div>
+          <div class="tour-pane tour-b"><strong>Transcript</strong><span>words appear as you speak</span></div>
+          <div class="tour-pane tour-c"><strong>Key Points</strong><span>the good bits, live</span></div>
+        </div>
+        <button class="primary-btn onb-next">Take me in</button>
+      </div>
+      <div class="onb-dots" id="onb-dots"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ Settings ═══════════ -->
+  <div id="settings" class="settings-overlay hidden">
+    <div class="settings-card">
+      <header class="settings-head">
+        <h2><span data-icon="settings"></span>Settings</h2>
+        <button id="settings-close" class="icon-btn" aria-label="Close settings"><span data-icon="x"></span></button>
+      </header>
+
+      <div class="settings-body">
+        <label class="field">
+          <span class="field-label">Anthropic API key</span>
+          <div class="key-row">
+            <input type="password" id="set-api-key" placeholder="sk-ant-…" spellcheck="false" />
+            <button class="secondary-btn small" id="set-test-key">Test Key</button>
+          </div>
+          <p class="key-result" id="set-key-result"></p>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Whisper model</span>
+          <select id="set-model"></select>
+          <p class="field-hint" id="set-model-hint"></p>
+          <div class="download-progress hidden" id="set-download">
+            <div class="processing-bar"><div class="processing-fill" id="set-download-fill" style="width:0%"></div></div>
+            <p id="set-download-label">Downloading…</p>
+          </div>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Save location</span>
+          <div class="key-row">
+            <input type="text" id="set-save-location" readonly />
+            <button class="secondary-btn small" id="set-choose-folder">Choose…</button>
+          </div>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Topic-shift silence gap — <strong id="set-gap-value">4s</strong></span>
+          <input type="range" id="set-gap" min="2" max="10" step="0.5" />
+          <p class="field-hint">A pause longer than this starts a new section in your notes.</p>
+        </label>
+
+        <label class="field toggle-field">
+          <span class="field-label">AI polish after each lecture</span>
+          <button id="set-polish" class="toggle" role="switch" aria-checked="true"><span class="toggle-knob"></span></button>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="js/icons.js"></script>
+  <script src="js/summarizer.js"></script>
+  <script src="js/waveform.js"></script>
+  <script src="js/recorder.js"></script>
+  <script src="js/transcript.js"></script>
+  <script src="js/keypoints.js"></script>
+  <script src="js/sessions-ui.js"></script>
+  <script src="js/settings-ui.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

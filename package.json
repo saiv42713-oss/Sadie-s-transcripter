@@ -1,0 +1,49 @@
+{
+  "name": "lecturevault",
+  "productName": "LectureVault",
+  "version": "1.0.0",
+  "description": "A warm, polished lecture recorder — transcribes locally, summarizes intelligently.",
+  "main": "src/main/main.js",
+  "author": "LectureVault",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac dmg",
+    "build:win": "electron-builder --win nsis",
+    "build:linux": "electron-builder --linux AppImage",
+    "test": "node tests/run-tests.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@fontsource/jetbrains-mono": "^5.1.1",
+    "@fontsource/nunito": "^5.1.1",
+    "@fontsource/plus-jakarta-sans": "^5.1.1"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.lecturevault.app",
+    "productName": "LectureVault",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office"
+    }
+  }
+}
