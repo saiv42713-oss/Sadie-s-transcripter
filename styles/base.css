@@ -1,0 +1,136 @@
+/* ───────── LectureVault design tokens ───────── */
+:root {
+  --bg-base:         #fdf8f0;
+  --bg-surface:      #fff9f2;
+  --bg-sidebar:      #f5ede0;
+  --accent-coral:    #f4623a;
+  --accent-coral-dk: #d94f2b;
+  --accent-marigold: #f5c842;
+  --accent-sage:     #8fb98a;
+  --accent-sage-dk:  #6e9a69;
+  --text-primary:    #2c1f14;
+  --text-secondary:  #7a6555;
+  --border:          #e8d9c8;
+  --shadow:          rgba(44, 31, 20, 0.08);
+  --shadow-deep:     rgba(44, 31, 20, 0.14);
+
+  --font-display: 'Nunito', 'Avenir Next', sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Avenir', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+
+  --radius: 10px;
+  --radius-lg: 16px;
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: var(--bg-base);
+  /* loose ruled-line texture, like good notebook paper */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 31px,
+    rgba(44, 31, 20, 0.04) 31px,
+    rgba(44, 31, 20, 0.04) 32px
+  );
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+button {
+  font-family: var(--font-display);
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 13px;
+  outline: none;
+  transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease);
+}
+
+input:focus, select:focus {
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 3px rgba(244, 98, 58, 0.14);
+}
+
+input::placeholder { color: var(--text-secondary); opacity: 0.7; }
+
+::selection { background: rgba(245, 200, 66, 0.45); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background-color: #d6c3ac; background-clip: content-box; }
+
+.hidden { display: none !important; }
+
+/* inline SVG icons (injected by icons.js) */
+[data-icon] svg {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.22em;
+  stroke-width: 2;
+}
+
+/* draggable strip under the macOS traffic lights */
+#drag-strip {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 34px;
+  -webkit-app-region: drag;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* toast */
+.toast {
+  position: fixed;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: var(--bg-base);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 11px 22px;
+  border-radius: 99px;
+  box-shadow: 0 6px 24px var(--shadow-deep);
+  z-index: 200;
+  animation: toast-in 220ms var(--ease);
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
