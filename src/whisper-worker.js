@@ -8,17 +8,14 @@ let isReady = false;
 async function init() {
   try {
     // Dynamic import for ESM compatibility
-    const { pipeline: createPipeline, env } = await import('@xenova/transformers');
+    const { pipeline: createPipeline, env } = await import('@huggingface/transformers');
 
-    env.allowLocalModels = true;
-    env.localModelPath = cacheDir;
     env.cacheDir = cacheDir;
-    env.backends.onnx.wasm.proxy = false;
 
     parentPort.postMessage({ type: 'progress', status: 'loading', progress: 0, text: 'Initializing Whisper...' });
 
     pipeline = await createPipeline('automatic-speech-recognition', modelName, {
-      quantized: true,
+      dtype: 'q8',
       progress_callback: (info) => {
         // transformers.js v2 emits: initiate → download → progress (repeated) → done → ready
         if (info.status === 'progress' && info.file) {

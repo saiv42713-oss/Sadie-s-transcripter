@@ -239,8 +239,9 @@ async function startRecording() {
   source.connect(processor);
   processor.connect(audioContext.destination);
 
-  // Send chunk to Whisper every 8 seconds
-  state.chunkInterval = setInterval(flushChunk, 8000);
+  // Flush chunks to Whisper on natural pauses instead of a fixed timer —
+  // cutting mid-word is the single biggest transcription quality killer
+  state.chunkInterval = setInterval(maybeFlushChunk, 500);
 
   // Timer
   state.recordingStart = Date.now();
@@ -251,20 +252,59 @@ async function startRecording() {
   startWaveform();
 }
 
-async function flushChunk() {
-  const SAMPLE_RATE = 16000;
-  const MIN_SAMPLES = SAMPLE_RATE * 2; // at least 2 seconds
+function rms(samples) {
+  if (!samples.length) return 0;
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  return Math.sqrt(sum / samples.length);
+}
 
-  if (state.chunkBuffer.length < MIN_SAMPLES) return;
+const SAMPLE_RATE = 16000;
+const MIN_CHUNK_S = 3;     // don't transcribe fragments shorter than this
+const MAX_CHUNK_S = 15;    // force a flush even mid-sentence past this
+const PAUSE_WINDOW_S = 0.45;
+const PAUSE_RMS = 0.01;    // trailing energy below this = natural pause
+const SILENT_RMS = 0.004;  // whole chunk below this = nothing was said
+
+function maybeFlushChunk() {
+  const len = state.chunkBuffer.length;
+  if (len < SAMPLE_RATE * MIN_CHUNK_S) return;
+
+  const tail = state.chunkBuffer.slice(-Math.floor(SAMPLE_RATE * PAUSE_WINDOW_S));
+  if (rms(tail) < PAUSE_RMS || len >= SAMPLE_RATE * MAX_CHUNK_S) {
+    flushChunk();
+  }
+}
+
+// Whisper hallucinates on silence/noise: bracketed sound effects like
+// "(bell dings)", music notes, and YouTube-ish closers. Strip them so the
+// transcript only contains real speech.
+function cleanTranscription(text) {
+  let t = text
+    .replace(/\([^)]*\)|\[[^\]]*\]|♪+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!t) return '';
+  if (/^(thank you\.?|thanks for watching\.?|you\.?|bye\.?|\.)$/i.test(t)) return '';
+  if (/subtitles? (by|provided|created)|amara\.org|www\./i.test(t)) return '';
+  return t;
+}
+
+async function flushChunk() {
+  if (state.chunkBuffer.length < SAMPLE_RATE * 1.5) return;
 
   const samples = [...state.chunkBuffer];
   state.chunkBuffer = [];
 
+  // Nothing was said — don't burn compute and invite hallucinations
+  if (rms(samples) < SILENT_RMS) return;
+
   try {
     const text = await window.api.invoke('transcribe-chunk', Array.from(samples));
-    if (text && text.trim()) {
-      appendTranscript(text.trim());
-      state.summarizer.addChunk(text.trim(), Date.now());
+    const cleaned = cleanTranscription(text || '');
+    if (cleaned) {
+      appendTranscript(cleaned);
+      state.summarizer.addChunk(cleaned, Date.now());
       updateKeyPoints();
     }
   } catch (err) {
@@ -309,12 +349,13 @@ async function stopRecording(doAiPolish) {
   dom.processingSub.textContent = 'Transcribing remaining audio…';
 
   // Flush remaining buffer
-  if (state.chunkBuffer.length > 8000) {
+  if (state.chunkBuffer.length > 8000 && rms(state.chunkBuffer) >= SILENT_RMS) {
     try {
       const text = await window.api.invoke('transcribe-chunk', Array.from(state.chunkBuffer));
-      if (text && text.trim()) {
-        appendTranscript(text.trim());
-        state.summarizer.addChunk(text.trim(), Date.now());
+      const cleaned = cleanTranscription(text || '');
+      if (cleaned) {
+        appendTranscript(cleaned);
+        state.summarizer.addChunk(cleaned, Date.now());
       }
     } catch (err) {
       console.warn('Final chunk transcription failed:', err);

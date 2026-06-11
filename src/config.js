@@ -7,8 +7,8 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 const DEFAULTS = {
   apiKey: '',
-  whisperModel: 'Xenova/whisper-base.en',
-  theme: 'dark',
+  whisperModel: 'Xenova/whisper-small.en',
+  theme: 'pink',
   autoScroll: true,
   keyPointInterval: 30000
 };
@@ -29,7 +29,9 @@ const LEGACY_MODEL_MAP = {
 function normalizeModel(model) {
   if (!model) return DEFAULTS.whisperModel;
   if (LEGACY_MODEL_MAP[model]) return LEGACY_MODEL_MAP[model];
-  if (!model.startsWith('Xenova/whisper-')) return DEFAULTS.whisperModel;
+  if (!/^(Xenova|onnx-community|distil-whisper)\/(distil-)?whisper-/.test(model)) {
+    return DEFAULTS.whisperModel;
+  }
   return model;
 }
 
