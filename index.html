@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.anthropic.com https://cdn.jsdelivr.net https://huggingface.co https://*.huggingface.co https://*.hf.co data: blob:; worker-src 'self' blob:; img-src 'self' data: blob:">
   <title>Sadie's Transcriptor 🎀</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -160,10 +160,11 @@
       >
       <label class="field-label" for="model-select">Whisper Model</label>
       <select class="field-select" id="model-select">
-        <option value="Xenova/whisper-tiny.en">whisper-tiny.en — Fastest, ~39 MB</option>
-        <option value="Xenova/whisper-base.en" selected>whisper-base.en — Balanced, ~74 MB</option>
-        <option value="Xenova/whisper-small.en">whisper-small.en — Accurate, ~244 MB</option>
-        <option value="Xenova/whisper-medium.en">whisper-medium.en — Best quality, ~769 MB</option>
+        <option value="Xenova/whisper-tiny.en">whisper-tiny.en — Fastest ⚡ (~40 MB)</option>
+        <option value="Xenova/whisper-base.en">whisper-base.en — Light (~80 MB)</option>
+        <option value="Xenova/whisper-small.en" selected>whisper-small.en — Accurate 💖 (~250 MB, recommended)</option>
+        <option value="Xenova/whisper-medium.en">whisper-medium.en — Very accurate (~770 MB, slower)</option>
+        <option value="onnx-community/whisper-large-v3-turbo">whisper-large-v3-turbo — Best quality ✨ (~1.6 GB, needs a fast computer)</option>
       </select>
       <div id="setup-msg"></div>
       <div class="setup-actions" style="margin-top:12px">
@@ -177,6 +178,7 @@
   <div id="toast-container"></div>
 
   <script src="summarizer.js"></script>
+  <script src="web-api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
